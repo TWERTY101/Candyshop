@@ -13,7 +13,7 @@
 #include <linux/module.h>
 #include <linux/state_notifier.h>
 
-#define DEFAULT_SUSPEND_DEFER_TIME 	10
+#define DEFAULT_SUSPEND_DEFER_TIME 	1
 #define STATE_NOTIFIER			"state_notifier"
 
 /*
@@ -96,7 +96,7 @@ void state_suspend(void)
 
 	suspend_in_progress = true;
 
-	queue_delayed_work_on(0, susp_wq, &suspend_work, 
+	queue_delayed_work(susp_wq, &suspend_work,
 		msecs_to_jiffies(suspend_defer_time * 1000));
 }
 
@@ -107,7 +107,7 @@ void state_resume(void)
 	suspend_in_progress = false;
 
 	if (state_suspended)
-		queue_work_on(0, susp_wq, &resume_work);
+		queue_work(susp_wq, &resume_work);
 }
 
 static int __init state_notifier_init(void)
