@@ -89,6 +89,7 @@ static bool suspended = false;
 static unsigned int default_target_loads[] = {DEFAULT_TARGET_LOAD};
 
 #define DEFAULT_TIMER_RATE (20 * USEC_PER_MSEC)
+#define SCREEN_OFF_TIMER_RATE ((unsigned long)(40 * USEC_PER_MSEC))
 #define DEFAULT_ABOVE_HISPEED_DELAY DEFAULT_TIMER_RATE
 static unsigned int default_above_hispeed_delay[] = {
 	DEFAULT_ABOVE_HISPEED_DELAY };
@@ -155,6 +156,7 @@ struct cpufreq_interactive_tunables {
 	 * The sample rate of the timer used to increase frequency
 	 */
 	unsigned long timer_rate;
+	unsigned long prev_timer_rate;
 	/*
 	 * Wait this long before raising speed above hispeed, by default a
 	 * single timer interval.
@@ -734,6 +736,17 @@ static void cpufreq_interactive_timer(unsigned long data)
 		wake_up_process(tunables->regionchange_task);
 	}
 #endif
+
+	if (suspended
+		&& tunables->timer_rate != tunables->prev_timer_rate)
+		tunables->timer_rate = tunables->prev_timer_rate;
+	else if (!suspended
+		&& tunables->timer_rate != SCREEN_OFF_TIMER_RATE) {
+		tunables->prev_timer_rate = tunables->timer_rate;
+		tunables->timer_rate
+			= max(tunables->timer_rate,
+				SCREEN_OFF_TIMER_RATE);
+	}
 
 	if ((cpu_load >= tunables->go_hispeed_load && !suspended) || boosted) {
 		if (pcpu->target_freq < tunables->hispeed_freq) {
@@ -2229,6 +2242,7 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
 			tunables->min_sample_time = DEFAULT_MIN_SAMPLE_TIME;
 			tunables->timer_rate = DEFAULT_TIMER_RATE;
 			tunables->boostpulse_duration_val = DEFAULT_MIN_SAMPLE_TIME;
+			tunables->prev_timer_rate = DEFAULT_TIMER_RATE;
 			tunables->timer_slack_val = DEFAULT_TIMER_SLACK;
 #ifdef CONFIG_MODE_AUTO_CHANGE
 			tunables->multi_enter_time = DEFAULT_MULTI_ENTER_TIME;
