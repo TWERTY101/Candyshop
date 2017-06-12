@@ -304,7 +304,7 @@ static void cpufreq_interactive_timer_resched(
 	expires = jiffies + usecs_to_jiffies(tunables->timer_rate);
 	mod_timer_pinned(&pcpu->cpu_timer, expires);
 
-	if (tunables->timer_slack_val >= 0 &&
+	if (!suspended && tunables->timer_slack_val >= 0 &&
 	    pcpu->target_freq > pcpu->policy->min) {
 		expires += usecs_to_jiffies(tunables->timer_slack_val);
 		mod_timer_pinned(&pcpu->cpu_slack_timer, expires);
@@ -334,7 +334,7 @@ static void cpufreq_interactive_timer_start(
 
 	pcpu->cpu_timer.expires = expires;
 	add_timer_on(&pcpu->cpu_timer, cpu);
-	if (tunables->timer_slack_val >= 0 &&
+	if (!suspended && tunables->timer_slack_val >= 0 &&
 	    pcpu->target_freq > pcpu->policy->min) {
 		expires += usecs_to_jiffies(tunables->timer_slack_val);
 		pcpu->cpu_slack_timer.expires = expires;
